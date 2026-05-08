@@ -1,16 +1,13 @@
-# Estágio 1: Construção do projeto (Build)
-FROM eclipse-temurin:21-jdk AS build
+# Estágio 1: Construção usando a imagem oficial do Maven (Evita erros de permissão do Windows)
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY . .
-# Transforma o código em um pacote executável (.jar)
-RUN ./mvnw clean package -DskipTests
+# Agora usamos o comando 'mvn' direto em vez do './mvnw'
+RUN mvn clean package -DskipTests
 
-# Estágio 2: Execução do projeto (Run)
+# Estágio 2: Execução do projeto
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-# Pega o arquivo pronto do estágio 1 e joga no servidor
 COPY --from=build /app/target/*.jar app.jar
-# Libera a porta 8080 para a internet
 EXPOSE 8080
-# O comando de "Play" do servidor
 ENTRYPOINT ["java", "-jar", "app.jar"]
