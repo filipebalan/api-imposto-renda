@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard IRPF</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Paleta de cores e estilo inspirados no Power BI */
+        :root {
+            --pbi-bg: #F3F2F1;
+            --pbi-card: #FFFFFF;
+            --pbi-blue: #118DFF;
+            --pbi-dark: #252423;
+            --pbi-muted: #605E5C;
+            --pbi-border: #E1DFDD;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--pbi-bg);
+            color: var(--pbi-dark);
+            margin: 0;
+            padding: 30px;
+        }
+
+        .cabecalho {
+            margin-bottom: 25px;
+        }
+
+        .cabecalho h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .cabecalho p {
+            margin: 5px 0 0 0;
+            color: var(--pbi-muted);
+            font-size: 14px;
+        }
+
+        /* Estrutura de Dashboard (Lado a Lado) */
+        .dashboard-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .card {
+            background: var(--pbi-card);
+            border-radius: 4px;
+            box-shadow: 0 1.2px 3.6px rgba(0,0,0,0.1), 0 0.3px 0.9px rgba(0,0,0,0.1);
+            padding: 24px;
+            flex: 1;
+            min-width: 320px;
+        }
+
+        .card-titulo {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--pbi-border);
+            padding-bottom: 10px;
+        }
+
+        /* Estilização do Formulário */
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--pbi-dark);
+        }
+
+        .campo {
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--pbi-border);
+            border-radius: 2px;
+            box-sizing: border-box;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .campo:focus {
+            outline: none;
+            border-color: var(--pbi-blue);
+        }
+
+        .linha-dupla { display: flex; gap: 15px; }
+        .linha-dupla > div { flex: 1; }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--pbi-blue);
+            color: white;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover { background-color: #0c70cb; }
+
+        /* Estilização dos Resultados (KPIs) */
+        #painelResultados { display: none; }
+
+        .kpi-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-box {
+            flex: 1;
+            background-color: var(--pbi-bg);
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid var(--pbi-blue);
+        }
+
+        .kpi-box.alerta { border-left-color: #D13438; } /* Cor vermelha para imposto */
+
+        .kpi-titulo { font-size: 12px; color: var(--pbi-muted); text-transform: uppercase; margin-bottom: 5px; }
+        .kpi-valor { font-size: 20px; font-weight: bold; margin: 0; }
+
+        .grafico-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="cabecalho">
+    <h1>Dashboard Analítico - IRPF</h1>
+    <p>Preencha a ficha cadastral para gerar a análise financeira de deduções.</p>
+</div>
+
+<div class="dashboard-container">
+
+    <div class="card">
+        <div class="card-titulo">Ficha Cadastral do Colaborador</div>
+
+        <form id="meuFormulario">
+            <label>Nome Completo</label>
+            <input type="text" id="nome" class="campo" required>
+
+            <label>E-mail Corporativo ou Pessoal</label>
+            <input type="email" id="email" class="campo" required>
+
+            <div class="linha-dupla">
+                <div>
+                    <label>CPF / CNPJ</label>
+                    <input type="text" id="documento" class="campo" required>
+                </div>
+                <div>
+                    <label>Telefone</label>
+                    <input type="text" id="telefone" class="campo" required>
+                </div>
+            </div>
+
+            <label>Endereço Completo</label>
+            <input type="text" id="endereco" class="campo" required>
+
+            <div class="linha-dupla">
+                <div>
+                    <label>Renda Bruta (R$)</label>
+                    <input type="number" id="rendaSalarial" class="campo" step="0.01" required>
+                </div>
+                <div>
+                    <label>Regime Contratual</label>
+                    <select id="regime" class="campo">
+                        <option value="CLT">CLT</option>
+                        <option value="PJ">PJ</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit">Processar Análise</button>
+        </form>
+    </div>
+
+    <div class="card" id="painelResultados">
+        <div class="card-titulo">Análise Financeira</div>
+
+        <div class="kpi-container">
+            <div class="kpi-box">
+                <div class="kpi-titulo">Faixa de Enquadramento</div>
+                <p class="kpi-valor" id="textoFaixa" style="font-size: 16px;">-</p>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-titulo">Alíquota Base</div>
+                <p class="kpi-valor" id="textoAliquota">-</p>
+            </div>
+            <div class="kpi-box alerta">
+                <div class="kpi-titulo">Imposto Retido</div>
+                <p class="kpi-valor" id="textoImposto">-</p>
+            </div>
+        </div>
+
+        <div class="grafico-wrapper">
+            <canvas id="meuGrafico"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('meuFormulario').addEventListener('submit', function(evento) {
+        evento.preventDefault();
+
+        const valorRenda = parseFloat(document.getElementById('rendaSalarial').value);
+
+        const dadosEnvio = {
+            nome: document.getElementById('nome').value,
+            email: document.getElementById('email').value,
+            documento: document.getElementById('documento').value,
+            telefone: document.getElementById('telefone').value,
+            endereco: document.getElementById('endereco').value,
+            rendaSalarial: valorRenda,
+            regimeDeTrabalho: document.getElementById('regime').value
+        };
+
+        fetch('http://localhost:8080/api/imposto/calcular', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosEnvio)
+        })
+            .then(resposta => resposta.json())
+            .then(dadosRetornados => {
+                // Exibe o cartão de resultados
+                document.getElementById('painelResultados').style.display = 'block';
+
+                // Preenche os KPIs
+                document.getElementById('textoFaixa').innerText = dadosRetornados.faixaSalarial;
+                document.getElementById('textoAliquota').innerText = dadosRetornados.aliquotaAplicada;
+                document.getElementById('textoImposto').innerText = "R$ " + dadosRetornados.impostoAPagar;
+
+                // Desenha o gráfico atualizado
+                desenharGrafico(valorRenda, dadosRetornados.impostoAPagar);
+            })
+            .catch(erro => console.error('A API falhou:', erro));
+    });
+
+    let graficoAtual = null;
+
+    function desenharGrafico(salarioBruto, impostoRetido) {
+        const salarioLiquido = salarioBruto - impostoRetido;
+        const contexto = document.getElementById('meuGrafico').getContext('2d');
+
+        if (graficoAtual != null) {
+            graficoAtual.destroy();
+        }
+
+        // Configuração do gráfico estilo BI
+        graficoAtual = new Chart(contexto, {
+            type: 'bar', // Mudou para gráfico de barras
+            data: {
+                labels: ['Salário Bruto', 'Imposto Retido', 'Salário Líquido'],
+                datasets: [{
+                    label: 'Distribuição em Reais (R$)',
+                    data: [salarioBruto, impostoRetido, salarioLiquido],
+                    // Cores distintas: Azul Claro, Vermelho de alerta, Azul PBI principal
+                    backgroundColor: ['#A6C8FF', '#D13438', '#118DFF'],
+                    borderRadius: 4, // Bordas levemente arredondadas nas barras
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // Esconde a legenda para ficar mais limpo
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' R$ ' + context.raw.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#E1DFDD' // Linhas de grade cinza bem claro
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false // Remove linhas verticais do fundo
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

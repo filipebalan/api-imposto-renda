@@ -1,0 +1,12 @@
+POST http://localhost:8080/api/imposto/calcular
+Content-Type: application/json
+
+{
+  "nome": "Filipe",
+  "email": "filipe@email.com",
+  "documento": "123.456.789-00",
+  "telefone": "86999999999",
+  "endereco": "Teresina - PI",
+  "rendaSalarial": 5500.00,
+  "regimeDeTrabalho": "CLT"
+}
