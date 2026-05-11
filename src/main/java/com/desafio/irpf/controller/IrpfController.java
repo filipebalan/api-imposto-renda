@@ -1,5 +1,6 @@
 package com.desafio.irpf.controller;
 
+import com.desafio.irpf.dto.DeclaracaoHistoricoDTO;
 import com.desafio.irpf.model.Declaracao;
 import com.desafio.irpf.model.Usuario;
 import com.desafio.irpf.repository.DeclaracaoRepository;
@@ -10,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/irpf")
@@ -17,6 +19,9 @@ public class IrpfController {
 
     @Autowired
     private CalculoIrpfService calculoService;
+
+    @Autowired
+    private DeclaracaoRepository declaracaoRepository;
 
     @Autowired
     private DeclaracaoRepository repository;
@@ -39,4 +44,15 @@ public class IrpfController {
         // 3. Retorna o valor final
         return ResponseEntity.ok(imposto);
     }
+
+    @GetMapping("/historico")
+    public ResponseEntity<List<DeclaracaoHistoricoDTO>> listarHistorico(@AuthenticationPrincipal Usuario usuario) {
+        var historico = declaracaoRepository.findAllByUsuarioIdOrderByDataCalculoDesc(usuario.getId())
+                .stream()
+                .map(DeclaracaoHistoricoDTO::doModel)
+                .toList();
+
+        return ResponseEntity.ok(historico);
+    }
+
 }
